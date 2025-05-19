@@ -98,7 +98,7 @@ async function registerCommands(client) {
         }
         
         console.log(`Slash komutları kaydediliyor... (${commands.length} komut)`);        
-        const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+        const rest = new REST({ version: '10' }).setToken(config.DISCORD_TOKEN);
         
         await rest.put(
             Routes.applicationCommands(client.user.id),

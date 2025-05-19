@@ -1,6 +1,7 @@
 {
+  "DISCORD_TOKEN": "YOUR_DISCORD_TOKEN_HERE",
   "openaiEndpoint": "https://api.kynux.cloud/api/v1",
-  "openaiModel": "gpt-4o",
+  "openaiModel": "grok-3-mini-beta",
   "kynuxApiKey": "",
   "youtube": {
     "apiEndpoint": "https://api.kynux.cloud/api/youtube/channel",

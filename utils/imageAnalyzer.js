@@ -3,50 +3,48 @@ const config = require('../config.json');
 const fs = require('fs');
 const youtubeApi = require('./youtubeApi');
 
+const KEYWORD_YES = 'evet';
+const FILTER_OUT_KEYWORD_LINE_1 = 'işte';
+const FILTER_OUT_KEYWORD_LINE_2 = 'bilgiler';
+
 async function analyzeImage(imagePath) {
     try {
         const imageBase64 = Buffer.from(fs.readFileSync(imagePath)).toString("base64");
         
-        const prompt = `# YouTube Screenshot Analiz Sistemi - v2.0
+        const systemPrompt = `Sen bir YouTube ekran görüntüsü analiz uzmanısın. Görevin, sağlanan YouTube ekran görüntülerini titizlikle inceleyerek belirli bilgileri doğru bir şekilde çıkarmaktır. Yanıtların her zaman net, kesin ve istenen formatta olmalıdır.
 
-Sen bir YouTube ekran görüntüsü analiz uzmanısın. Bu görüntüyü titizlikle incelemen ve aşağıdaki kritik bilgileri doğru şekilde tespit etmen gerekiyor:
+Analiz Kriterleri:
+1.  **Video Başlığı:** Görüntüdeki video başlığını tam olarak, kelimesi kelimesine yaz.
+2.  **Kanal Adı:** Görüntüdeki kanal adını tam olarak yaz.
+3.  **Abonelik Durumu:** Kullanıcının kanala abone olup olmadığını belirle. Sadece "Evet" veya "Hayır" yanıtını ver.
+    -   **İpuçları (Abonelik):**
+        -   Ekranda net "Abone Ol" / "Subscribe" butonu varsa = Abone olunmamış (Hayır).
+        -   "Abone Olundu" / "Subscribed" butonu varsa = Abone olunmuş (Evet).
+        -   "Abone Ol" butonu yoksa VE bir zil simgesi (🔔) görünüyorsa (genellikle mobil veya abone olunmuş masaüstü görünümlerinde) = Abone olunmuş (Evet). Zil simgesinin durumu (içi dolu, vb.) abone olunduğu gerçeğini değiştirmez.
+4.  **Beğeni Durumu:** Kullanıcının videoyu beğenip beğenmediğini belirle. Sadece "Evet" veya "Hayır" yanıtını ver.
+    -   **İpuçları (Beğeni):**
+        -   "Beğen" / "Like" (👍) simgesinin içi boş veya sadece dış çizgileri belirginse = Beğenilmemiş (Hayır).
+        -   "Beğenildi" / "Liked" (👍) simgesinin içi doluysa = Beğenilmiş (Evet).
 
-## 🎯 TEMEL BİLGİLER (ZORUNLU)
-
-1. Video başlığı nedir? (Tam olarak, kelimesi kelimesine)
-2. Kanal adı nedir? (Tam olarak)
-3. Abone durumu: Kullanıcı kanala abone olmuş mu? (SADECE "Evet" veya "Hayır" şeklinde yanıtla)
-4. Like durumu: Kullanıcı videoyu beğenmiş mi? (SADECE "Evet" veya "Hayır" şeklinde yanıtla)
-
-## ⚠️ ÖNEMLİ NOTLAR VE İPUÇLARI
-
-- **Genel Yazım Kuralı:** Tespit ettiğiniz tüm yazılar (video başlığı, kanal adı) TAM OLARAK görüntüde göründüğü gibi, büyük/küçük harfe duyarlı şekilde yazılmalıdır.
-- **Abonelik Durumu Tespiti:**
-    - **Temel İlke:** Ekranda net bir şekilde "Abone Ol" veya "Subscribe" yazan bir buton görüyorsanız, kullanıcı abone **değildir** (Yanıt: Hayır).
-    - **"Abone Olundu" / "Subscribed" Butonu:** Eğer "Abone Olundu" veya "Subscribed" yazan bir buton görüyorsanız (genellikle gri veya farklı renkte olur), kullanıcı **abonedir** (Yanıt: Evet).
-    - **Zil Simgesi (🔔) Durumu (Özellikle Mobil ve Abone Olunmuş Durumlar):**
-        - Eğer "Abone Ol" veya "Subscribe" butonu **görünmüyorsa** VE kanal adının yanında veya etkileşim alanında bir **zil simgesi (🔔)** varsa, bu kullanıcının **abone olduğu** anlamına gelir (Yanıt: Evet). Zil simgesinin görünümü (örneğin, içi dolu olması, yanında ok işareti olması, vb.) abone olunduğu gerçeğini değiştirmez; bu sadece bildirim ayarlarını gösterir.
-    - **Özet (Abonelik):** "Abone Ol" butonu varsa → Hayır. "Abone Olundu" butonu varsa → Evet. "Abone Ol" butonu yoksa VE zil simgesi varsa → Evet.
-- **Like Durumu Tespiti:**
-    - Eğer "Beğen" / "Like" (👍) simgesinin içi boş veya sadece dış çizgileri belirginse (genellikle beyaz/gri arka planda koyu simge veya tersi) = Like atılmamış (Hayır).
-    - Eğer "Beğenildi" / "Liked" (👍) simgesinin içi doluysa (genellikle koyu renkli simge) = Like atılmış (Evet).
-
-## 📝 YANIT FORMATI
-
-Lütfen SADECE aşağıdaki formatta, sade ve net bir şekilde yanıt ver:
-
+Yanıt Formatı (SADECE BU FORMATI KULLAN):
 1. [Video başlığı]
 2. [Kanal adı]
 3. [Abone durumu: Evet/Hayır]
 4. [Like durumu: Evet/Hayır]`;
+
+        const userPromptForImage = "Lütfen bu YouTube ekran görüntüsünü analiz et ve bilgileri belirtilen formatta çıkar.";
         
         const payload = {
-            model: config.openaiModel,
+            model: "grok-3-mini-beta",
             messages: [
+                {
+                    role: "system",
+                    content: systemPrompt
+                },
                 {
                     role: "user",
                     content: [
-                        { type: "text", text: prompt },
+                        { type: "text", text: userPromptForImage },
                         { 
                             type: "image_url", 
                             image_url: {
@@ -60,7 +58,7 @@ Lütfen SADECE aşağıdaki formatta, sade ve net bir şekilde yanıt ver:
 
         const response = await axios.post(config.openaiEndpoint + '/chat/completions', payload, {
             headers: {
-                'X-API-Key': `${process.env.KYNUX_CLOUD_API}`,
+                'X-API-Key': `${config.kynuxApiKey}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -93,10 +91,40 @@ function cleanTitle(title) {
         .trim();
 }
 
+function levenshteinDistance(a, b) {
+    if (a.length === 0) return b.length;
+    if (b.length === 0) return a.length;
+
+    const matrix = [];
+
+    for (let i = 0; i <= b.length; i++) {
+        matrix[i] = [i];
+    }
+
+    for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+    }
+
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1, 
+                    matrix[i][j - 1] + 1,
+                    matrix[i - 1][j] + 1 
+                );
+            }
+        }
+    }
+    return matrix[b.length][a.length];
+}
+
 async function parseAnalysis(analysisText) {
     const lines = analysisText.split('\n')
         .filter(line => line.trim() !== '')
-        .filter(line => !line.toLowerCase().includes('işte') && !line.toLowerCase().includes('bilgiler'))
+        .filter(line => !line.toLowerCase().includes(FILTER_OUT_KEYWORD_LINE_1) && !line.toLowerCase().includes(FILTER_OUT_KEYWORD_LINE_2))
         .map(line => line.trim());
 
     const results = {
@@ -115,9 +143,9 @@ async function parseAnalysis(analysisText) {
         } else if (line.startsWith('2.')) {
             channelName = line.substring(2).trim();
         } else if (line.startsWith('3.')) {
-            isSubscribed = line.toLowerCase().includes('evet');
+            isSubscribed = line.toLowerCase().includes(KEYWORD_YES);
         } else if (line.startsWith('4.')) {
-            isLiked = line.toLowerCase().includes('evet');
+            isLiked = line.toLowerCase().includes(KEYWORD_YES);
         }
     }
 
@@ -148,10 +176,15 @@ async function parseAnalysis(analysisText) {
     
     const expectedChannelName = videoSearchCriteria.channelName || config.youtube.channelName;
     
+    const TITLE_MATCH_LEVENSHTEIN_THRESHOLD = 3;
+    const titleDistance = levenshteinDistance(detectedTitle, expectedTitle);
+
     console.log('Başlık Kontrolleri:', {
         originalVideoTitle: videoTitle,
         cleanedDetectedTitle: detectedTitle,
         expectedTitle: expectedTitle,
+        titleDistance: titleDistance,
+        titleMatchThreshold: TITLE_MATCH_LEVENSHTEIN_THRESHOLD,
         expectedChannelName: expectedChannelName,
         detectedChannelName: channelName,
         isSubscribed: isSubscribed,
@@ -161,15 +194,16 @@ async function parseAnalysis(analysisText) {
     let isCorrectVideo;
     
     if (config.youtube.checkLatestVideoOnly) {
-        const titleMatch = detectedTitle === expectedTitle;
+        const titleMatch = titleDistance <= TITLE_MATCH_LEVENSHTEIN_THRESHOLD;
         const channelMatch = channelName.toLowerCase().trim() === expectedChannelName.toLowerCase().trim();
         
         isCorrectVideo = titleMatch && channelMatch;
         
         if (channelMatch && !titleMatch) {
-            console.log("❌ Kanal doğru ama farklı video açılmış: ", {
+            console.log(`❌ Kanal doğru ama farklı video açılmış (Levenshtein mesafesi: ${titleDistance}, Eşik: ${TITLE_MATCH_LEVENSHTEIN_THRESHOLD}): `, {
                 expected: expectedTitle,
-                detected: detectedTitle
+                detected: detectedTitle,
+                distance: titleDistance
             });
             results.reasons.push(`❌ Yanlış video. Lütfen "${videoSearchCriteria.latestVideoTitle}" başlıklı en son videoyu açın`);
         } else if (!channelMatch) {

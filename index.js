@@ -1,9 +1,7 @@
-require('dotenv').config();
-
 const { Client, GatewayIntentBits, Partials, Collection } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
-
+const config = require('./config.json');
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -39,7 +37,7 @@ process.on('unhandledRejection', (error) => {
     console.error('Beklenmeyen hata:', error);
 });
 
-client.login(process.env.DISCORD_TOKEN).catch(error => {
+client.login(config.DISCORD_TOKEN).catch(error => {
     console.error('Giriş hatası:', error);
     process.exit(1);
 });
