@@ -5,10 +5,8 @@ const youtubeApi = require('./youtubeApi');
 
 async function analyzeImage(imagePath) {
     try {
-        // Görüntüyü base64'e dönüştür
         const imageBase64 = Buffer.from(fs.readFileSync(imagePath)).toString("base64");
         
-        // Modern ve kapsamlı analiz promptu
         const prompt = `# YouTube Screenshot Analiz Sistemi - v2.0
 
 Sen bir YouTube ekran görüntüsü analiz uzmanısın. Bu görüntüyü titizlikle incelemen ve aşağıdaki kritik bilgileri doğru şekilde tespit etmen gerekiyor:
@@ -20,13 +18,18 @@ Sen bir YouTube ekran görüntüsü analiz uzmanısın. Bu görüntüyü titizli
 3. Abone durumu: Kullanıcı kanala abone olmuş mu? (SADECE "Evet" veya "Hayır" şeklinde yanıtla)
 4. Like durumu: Kullanıcı videoyu beğenmiş mi? (SADECE "Evet" veya "Hayır" şeklinde yanıtla)
 
-## ⚠️ ÖNEMLİ NOTLAR
+## ⚠️ ÖNEMLİ NOTLAR VE İPUÇLARI
 
-- Tüm yazılar TAM OLARAK görüntüde göründüğü gibi yazılmalıdır
-- Beyaz/gri "Abone Ol" veya "Subscribe" butonu görünüyorsa = Abone olunmamış (Hayır)
-- Renkli veya "Abone Olundu" butonu görünüyorsa = Abone olunmuş (Evet)
-- Mavi/beyaz like butonu görünüyorsa = Like atılmamış (Hayır)
-- Mavi ve doldurulmuş like butonu görünüyorsa = Like atılmış (Evet)
+- **Genel Yazım Kuralı:** Tespit ettiğiniz tüm yazılar (video başlığı, kanal adı) TAM OLARAK görüntüde göründüğü gibi, büyük/küçük harfe duyarlı şekilde yazılmalıdır.
+- **Abonelik Durumu Tespiti:**
+    - **Temel İlke:** Ekranda net bir şekilde "Abone Ol" veya "Subscribe" yazan bir buton görüyorsanız, kullanıcı abone **değildir** (Yanıt: Hayır).
+    - **"Abone Olundu" / "Subscribed" Butonu:** Eğer "Abone Olundu" veya "Subscribed" yazan bir buton görüyorsanız (genellikle gri veya farklı renkte olur), kullanıcı **abonedir** (Yanıt: Evet).
+    - **Zil Simgesi (🔔) Durumu (Özellikle Mobil ve Abone Olunmuş Durumlar):**
+        - Eğer "Abone Ol" veya "Subscribe" butonu **görünmüyorsa** VE kanal adının yanında veya etkileşim alanında bir **zil simgesi (🔔)** varsa, bu kullanıcının **abone olduğu** anlamına gelir (Yanıt: Evet). Zil simgesinin görünümü (örneğin, içi dolu olması, yanında ok işareti olması, vb.) abone olunduğu gerçeğini değiştirmez; bu sadece bildirim ayarlarını gösterir.
+    - **Özet (Abonelik):** "Abone Ol" butonu varsa → Hayır. "Abone Olundu" butonu varsa → Evet. "Abone Ol" butonu yoksa VE zil simgesi varsa → Evet.
+- **Like Durumu Tespiti:**
+    - Eğer "Beğen" / "Like" (👍) simgesinin içi boş veya sadece dış çizgileri belirginse (genellikle beyaz/gri arka planda koyu simge veya tersi) = Like atılmamış (Hayır).
+    - Eğer "Beğenildi" / "Liked" (👍) simgesinin içi doluysa (genellikle koyu renkli simge) = Like atılmış (Evet).
 
 ## 📝 YANIT FORMATI
 
@@ -55,7 +58,6 @@ Lütfen SADECE aşağıdaki formatta, sade ve net bir şekilde yanıt ver:
             ]
         };
 
-        // API isteği gönder
         const response = await axios.post(config.openaiEndpoint + '/chat/completions', payload, {
             headers: {
                 'X-API-Key': `${process.env.KYNUX_CLOUD_API}`,
